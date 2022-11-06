@@ -54,6 +54,7 @@
               (if a (org-gfm-export-to-markdown t s v)
                 (org-open-file (org-gfm-export-to-markdown nil s v)))))))
   :translate-alist '((inner-template . org-gfm-inner-template)
+                     (footnote-reference . org-gfm-footnote-reference)
                      (paragraph . org-gfm-paragraph)
                      (strike-through . org-gfm-strike-through)
                      (example-block . org-gfm-example-block)
@@ -257,26 +258,25 @@ INFO is a plist used as a communication channel."
                    (cons n (org-trim (org-export-data raw info))))))
     (when fn-alist
       (format
-       "## %s\n%s"
-       "Footnotes"
-       (format
-        "\n%s\n"
-        (mapconcat
-         (lambda (fn)
-           (let ((n (car fn)) (def (cdr fn)))
-             (format
-              "%s %s\n"
-              (format
-               (plist-get info :html-footnote-format)
-               (org-html--anchor
-                (format "fn.%d" n)
-                n
-                (format " class=\"footnum\" href=\"#fnr.%d\"" n)
-                info))
-              def)))
-         fn-alist
-         "\n"))))))
+       "\n%s\n"
+       (mapconcat
+        (lambda (fn)
+          (let ((n (car fn))
+                (def (cdr fn)))
+            (format "[^%s] %s\n" n def)))
+        fn-alist
+        "\n")))))
 
+(defun org-gfm-footnote-reference (footnote-reference _contents info)
+  "Transcode a FOOTNOTE-REFERENCE element from Org to GFM.
+CONTENTS is nil.  INFO is a plist holding contextual information."
+  (concat
+   ;; Insert separator between two footnotes in a row.
+   (let ((prev (org-export-get-previous-element footnote-reference info)))
+     (when (eq (org-element-type prev) 'footnote-reference)
+       (plist-get info :html-footnote-separator)))
+   (let* ((n (org-export-get-footnote-number footnote-reference info)))
+	 (format "[^%d]" n))))
 
 ;;;; Template
 
